@@ -1,0 +1,20 @@
+{
+  "name": "mysql-cdc-hoterip",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "database.hostname": "172.17.0.1",
+    "database.port": "3306",
+    "database.user": "root",
+    "database.password": "password",
+    "database.server.id": "184054",
+    "database.server.name": "dbserver1",
+    "database.include.list": "local_hoterip",
+    "table.include.list": "local_hoterip.items",
+    "snapshot.locking.mode": "none",
+    "snapshot.include.collection.list": "local_hoterip.items",
+    "database.history.kafka.bootstrap.servers": "kafka:9092",
+    "database.history.kafka.topic": "dbhistory.fullfillment",
+    "topic.prefix": "hoteripcdc",
+    "include.schema.changes": "true"
+  }
+}

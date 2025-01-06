@@ -1,0 +1,92 @@
+version: '3.3'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "9092:9092"
+
+  connect:
+    image: quay.io/debezium/connect:latest
+    container_name: connect
+    depends_on:
+      - kafka
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      STATUS_STORAGE_TOPIC: my_connect_statuses
+    ports:
+      - "8083:8083"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.10.0
+    container_name: logstash
+    depends_on:
+      - kafka
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    environment:
+      LS_JAVA_OPTS: "-Xms1g -Xmx2g"
+      xpack.monitoring.enabled: false
+      # HTTP_PROXY: "http://your-proxy:8080"  # Jika menggunakan proxy
+      # HTTPS_PROXY: "https://your-proxy:8080"  # Jika menggunakan proxy
+    ports:
+      - "5044:5044"
+      - "5000:5000"
+      - "9600:9600"
+    command: >
+      bash -c "
+        bin/logstash-plugin install --version 11.3.3 logstash-integration-kafka
+        bin/logstash -f /usr/share/logstash/pipeline/logstash.conf
+      "
+    networks:
+      default:
+        aliases:
+          - logstash
+    dns:
+      - 8.8.8.8   # Google DNS
+      - 8.8.4.4   # Google DNS
+
+  kafka-connect-ui:
+    image: landoop/kafka-connect-ui:latest
+    container_name: kafka-connect-ui
+    ports:
+      - "8000:8000"
+    environment:
+      CONNECT_URL: "http://connect:8083"
+      PROXY: "true"
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+      SERVER_SERVLET_CONTEXTPATH: "/" # Mengatur path ke root
+    ports:
+      - "9000:9000"
+
+networks:
+  default:
+    driver: bridge
