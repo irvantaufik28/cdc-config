@@ -27,3 +27,12 @@ mysql -u root -p
 
 GRANT SELECT, SHOW VIEW, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'root'@'%';
 FLUSH PRIVILEGES;
+
+
+
+docker exec -it dea61ea956a5 bash
+
+kafka-consumer-groups --bootstrap-server kafka:9092 --group logstash-group --reset-offsets --to-earliest --execute --all-topics
+
+
+kafka-console-consumer --bootstrap-server kafka:9092 --topic hoteripcdc.local_hoterip.hotels --from-beginning
